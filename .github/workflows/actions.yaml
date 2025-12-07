@@ -27,6 +27,7 @@ jobs:
           run: |
             eval $(opam env)
             opam install . --deps-only --with-test
+            opam install qcheck qcheck-alcotest
 
         - name: Install ocamlformat
           run: |
