@@ -131,28 +131,6 @@ let rec remove_rec value = function
 
 let remove value bag = remove_rec value bag
 
-let rec remove_all_rec value = function
-  | None -> None
-  | Some node ->
-    let cmp = compare value node.value in
-    if cmp < 0 then
-      let new_left = remove_all_rec value node.left in
-      balance (Some { node with left = new_left })
-    else if cmp > 0 then
-      let new_right = remove_all_rec value node.right in
-      balance (Some { node with right = new_right })
-    else
-      match node.left, node.right with
-      | None, None -> None
-      | Some _, None -> node.left
-      | None, Some _ -> node.right
-      | Some _, Some _ ->
-        let successor = find_min node.right in
-        let new_right = remove_min node.right in
-        balance (Some { node with value = successor; right = new_right })
-
-let remove_all value bag = remove_all_rec value bag
-
 let rec fold_left func acc = function
   | None -> acc
   | Some node ->
@@ -176,40 +154,27 @@ let rec fold_right func bag acc =
     let acc_node = fold_count func node.value node.count acc_right in
     fold_right func node.left acc_node
 
-let rec filter_rec predicate = function
-  | None -> None
-  | Some node ->
-    let filtered_left = filter_rec predicate node.left in
-    let filtered_right = filter_rec predicate node.right in
-    if predicate node.value then
-      balance (Some (make_node node.value node.count filtered_left filtered_right))
-    else
-      let merge_trees left right =
-        match left, right with
-        | None, tree | tree, None -> tree
-        | Some _, Some _ ->
-          let min_val = find_min right in
-          let new_right = remove_min right in
-          balance (Some (make_node min_val 1 left new_right))
-      in
-      merge_trees filtered_left filtered_right
+let filter predicate bag =
+  fold_left (fun acc value -> 
+    if predicate value then insert value acc else acc
+  ) empty bag
 
-let filter predicate bag = filter_rec predicate bag
+let map func bag =
+  fold_left (fun acc value -> insert (func value) acc) empty bag
 
-let rec map_rec func = function
-  | None -> None
-  | Some node ->
-    let mapped_value = func node.value in
-    let mapped_left = map_rec func node.left in
-    let mapped_right = map_rec func node.right in
-    let rec insert_multiple value count acc =
-      if count <= 0 then acc
-      else insert_multiple value (count - 1) (insert value acc)
-    in
-    let result = insert_multiple mapped_value node.count None in
-    union (union result mapped_left) mapped_right
-
-and union bag1 bag2 =
+let union bag1 bag2 =
   fold_left (fun acc value -> insert value acc) bag1 bag2
 
-let map func bag = map_rec func bag
+let remove_all value bag =
+  filter (fun x -> x <> value) bag
+
+
+let rec equals bag1 bag2 =
+  match bag1, bag2 with
+  | None, None -> true
+  | None, Some _ | Some _, None -> false
+  | Some node1, Some node2 ->
+    node1.value = node2.value &&
+    node1.count = node2.count &&
+    equals node1.left node2.left &&
+    equals node1.right node2.right

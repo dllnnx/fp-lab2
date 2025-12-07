@@ -13,3 +13,4 @@ val fold_left : ('acc -> 'a -> 'acc) -> 'acc -> 'a t -> 'acc
 val fold_right : ('a -> 'acc -> 'acc) -> 'a t -> 'acc -> 'acc
 
 val union : 'a t -> 'a t -> 'a t
+val equals : 'a t -> 'a t -> bool
