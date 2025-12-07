@@ -1,0 +1,46 @@
+name: Build, test, lint
+
+on:
+  - push
+  - pull_request
+
+permissions: read-all
+
+jobs:
+  main:
+      strategy:
+        fail-fast: false
+      
+      runs-on: ubuntu-22.04
+
+      steps:
+        - name: Checkout tree
+          uses: actions/checkout@v4
+
+        - name: Set-up OCaml
+          uses: ocaml/setup-ocaml@v2
+          with:
+            ocaml-compiler: "4.14.0"
+            dune-cache: true
+
+        - name: Install dependencies
+          run: |
+            eval $(opam env)
+            opam install . --deps-only --with-test
+
+        - name: Install ocamlformat
+          run: |
+            eval $(opam env)
+            opam install ocamlformat
+
+        - name: Check formatting
+          working-directory: .
+          run: |
+            eval "$(opam env)"
+            ocamlformat --version
+            git ls-files '*.ml' '*.mli' | xargs -r ocamlformat --enable-outside-detected-project --check
+
+        - name: Build & Test
+          run: |
+            eval $(opam env)
+            dune test
